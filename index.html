@@ -58,10 +58,10 @@
                 document.getElementById('btnLoginNav').classList.add('hidden');
                 document.getElementById('userMenu').classList.remove('hidden');
                 
-                const displayName = user.email ? user.email.split('@')[0] : '使用者';
+                const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '使用者');
                 document.getElementById('navUserName').innerText = displayName;
                 
-                // 已取消匿名機制，登入即為正式會員
+                // 登入即為正式會員
                 document.getElementById('btnAdmin').classList.remove('hidden');
             } else {
                 console.log("User signed out");
@@ -415,6 +415,25 @@
                 </div>
             </div>
 
+            <!-- Forgot Password View -->
+            <div id="viewForgot" class="p-8 hidden">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">重設密碼</h3>
+                    <p class="text-sm text-slate-500 mt-1">請輸入您的註冊信箱以接收重設連結</p>
+                </div>
+                <form id="formForgot" onsubmit="handleResetPassword(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">電子信箱</label>
+                        <input type="email" id="forgotEmail" required class="w-full rounded-lg border-slate-300 border px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="name@example.com">
+                    </div>
+                    <button type="submit" id="btnSubmitForgot" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors mt-2 shadow-sm">發送重設連結</button>
+                </form>
+
+                <div class="mt-6 text-center text-sm text-slate-600 border-t border-slate-100 pt-4">
+                    記起密碼了？ <button onclick="switchAuthView('login')" class="font-bold text-brand-600 hover:text-brand-500">返回登入</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -464,13 +483,17 @@
         }
 
         function switchAuthView(view) {
-            document.getElementById('viewLogin').classList.add('hidden');
-            document.getElementById('viewRegister').classList.add('hidden');
-            document.getElementById('viewForgot').classList.add('hidden');
+            const viewLogin = document.getElementById('viewLogin');
+            const viewRegister = document.getElementById('viewRegister');
+            const viewForgot = document.getElementById('viewForgot');
             
-            if (view === 'login') document.getElementById('viewLogin').classList.remove('hidden');
-            if (view === 'register') document.getElementById('viewRegister').classList.remove('hidden');
-            if (view === 'forgot') document.getElementById('viewForgot').classList.remove('hidden');
+            if (viewLogin) viewLogin.classList.add('hidden');
+            if (viewRegister) viewRegister.classList.add('hidden');
+            if (viewForgot) viewForgot.classList.add('hidden');
+            
+            if (view === 'login' && viewLogin) viewLogin.classList.remove('hidden');
+            if (view === 'register' && viewRegister) viewRegister.classList.remove('hidden');
+            if (view === 'forgot' && viewForgot) viewForgot.classList.remove('hidden');
         }
 
         function toggleAdminView(showAdmin) {
@@ -590,7 +613,7 @@
                     uid: user.uid,
                     name: user.displayName || (user.email ? user.email.split('@')[0] : 'Google使用者'),
                     email: user.email,
-                    createdAt: user.metadata.creationTime || new Date().toISOString()
+                    createdAt: user.metadata?.creationTime || new Date().toISOString()
                 }, { merge: true });
 
                 showToast('Google 登入成功', 'success');
@@ -598,7 +621,7 @@
             } catch (error) {
                 console.error("Google Sign-In Error:", error);
                 if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-                    showToast('Google 登入失敗: ' + error.message, 'error');
+                    showToast('Google 登入失敗: ' + (error.message || '未知錯誤'), 'error');
                 }
             }
         }
@@ -991,7 +1014,7 @@
                     const userId = window.currentUser.uid;
                     
                     // Strict Firestore Path for user-private data
-                    const historyCollectionRef = collection(
+                    const historyCollectionRef = window.fbCollection(
                         window.firebaseDb, 
                         'artifacts', 
                         appId, 
@@ -1000,7 +1023,7 @@
                         'history'
                     );
 
-                    addDoc(historyCollectionRef, record)
+                    window.fbAddDoc(historyCollectionRef, record)
                         .then(() => {
                             showToast('歷史紀錄已同步至雲端', 'success');
                         })
@@ -1076,8 +1099,6 @@
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    // We could optionally restore the UI here, but for simplicity, 
-                    // we just acknowledge it exists. A full history list would go in a sidebar.
                     elements.queryInput.value = data.naturalQuery || '';
                 } catch(e) {}
             }
