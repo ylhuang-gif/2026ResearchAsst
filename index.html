@@ -38,6 +38,9 @@
         window.firebaseAuth = auth;
         window.currentUser = null;
 
+        // 管理員 Email 設定
+        const ADMIN_EMAIL = 'ylhuang@ntsu.edu.tw';
+
         // Firebase Auth Methods attached to window for global access
         window.fbCreateUser = createUserWithEmailAndPassword;
         window.fbSignIn = signInWithEmailAndPassword;
@@ -61,11 +64,15 @@
                 const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '使用者');
                 document.getElementById('navUserName').innerText = displayName;
                 
-                // 登入即為正式會員
-                document.getElementById('btnAdmin').classList.remove('hidden');
+                // 僅有管理員帳號才能看到「管理後台」按鈕
+                if (user.email === ADMIN_EMAIL) {
+                    document.getElementById('btnAdmin').classList.remove('hidden');
+                } else {
+                    document.getElementById('btnAdmin').classList.add('hidden');
+                }
             } else {
                 console.log("User signed out");
-                document.getElementById('btnLoginNav').classList.remove('hidden');
+                document.getElementById('btnLoginNav').classList.add('hidden');
                 document.getElementById('userMenu').classList.add('hidden');
                 document.getElementById('btnAdmin').classList.add('hidden');
             }
